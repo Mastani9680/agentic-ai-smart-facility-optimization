@@ -117,7 +117,7 @@ col5.metric(
 # -----------------------------
 st.subheader("📈 Energy Consumption Trend")
 
-df["timestamp"] = pd.to_datetime(df["timestamp"])
+df["timestamp"] = pd.to_datetime(df["timestamp"], format="%d-%m-%Y %H:%M")
 
 hourly_energy = (
     df.groupby("timestamp")["total_energy"]
@@ -382,11 +382,195 @@ for i, recommendation in enumerate(
         f"**{i}.** {recommendation}"
     )
 
+
+# -----------------------------
+# M2 - Predictive Maintenance
+# -----------------------------
+
+st.markdown("---")
+
+st.title("🔧 Milestone 2 - Predictive Maintenance")
+
+maintenance_file = "results/maintenance/maintenance_predictions.csv"
+health_file = "results/maintenance/equipment_health.csv"
+alerts_file = "results/maintenance/maintenance_alerts.csv"
+
+if (
+    os.path.exists(maintenance_file)
+    and os.path.exists(health_file)
+    and os.path.exists(alerts_file)
+):
+
+    maintenance_df = pd.read_csv(maintenance_file)
+    health_df = pd.read_csv(health_file)
+    alerts_df = pd.read_csv(alerts_file)
+
+    # Maintenance KPIs
+    total_assets = len(maintenance_df)
+
+    average_health = health_df["health_score"].mean()
+
+    maintenance_count = (
+        maintenance_df["predicted_maintenance"] == 1
+    ).sum()
+
+    critical_count = (
+        health_df["health_category"] == "Critical"
+    ).sum()
+
+    alert_count = len(alerts_df)
+
+    st.subheader("📊 Maintenance Overview")
+
+    col1, col2, col3, col4, col5 = st.columns(5)
+
+    col1.metric(
+        "Total Assets",
+        total_assets
+    )
+
+    col2.metric(
+        "Average Health",
+        f"{average_health:.2f}"
+    )
+
+    col3.metric(
+        "Maintenance Required",
+        maintenance_count
+    )
+
+    col4.metric(
+        "Critical Assets",
+        critical_count
+    )
+
+    col5.metric(
+        "Maintenance Alerts",
+        alert_count
+    )
+
+    # Health Distribution
+    st.subheader("🩺 Equipment Health Distribution")
+
+    health_distribution = (
+        health_df["health_category"]
+        .value_counts()
+    )
+
+    st.bar_chart(health_distribution)
+
+    # Equipment Type Analysis
+    st.subheader("🏭 Maintenance by Equipment Type")
+
+    equipment_maintenance = (
+        maintenance_df[
+            maintenance_df["predicted_maintenance"] == 1
+        ]
+        .groupby("equipment_type")
+        .size()
+        .sort_values(ascending=False)
+    )
+
+    st.bar_chart(equipment_maintenance)
+
+    # Building-wise Maintenance
+    st.subheader("🏢 Building-wise Maintenance")
+
+    building_maintenance = (
+        maintenance_df[
+            maintenance_df["predicted_maintenance"] == 1
+        ]
+        .groupby("building_id")
+        .size()
+        .sort_values(ascending=False)
+    )
+
+    st.bar_chart(building_maintenance)
+
+    # Health Score Table
+    st.subheader("🔍 Equipment Health Details")
+
+    st.dataframe(
+        health_df[
+            [
+                "asset_id",
+                "building_id",
+                "equipment_type",
+                "health_score",
+                "health_category"
+            ]
+        ],
+        use_container_width=True
+    )
+
+    # Maintenance Alerts
+    st.subheader("🚨 Maintenance Alerts")
+
+    if not alerts_df.empty:
+        st.dataframe(
+            alerts_df,
+            use_container_width=True
+        )
+    else:
+        st.success("No maintenance alerts.")
+
+    # Maintenance Status
+    st.subheader("🤖 AI Maintenance Status")
+
+    if critical_count > 0:
+        maintenance_status = "🔴 CRITICAL MAINTENANCE RISK"
+    elif maintenance_count >= total_assets * 0.20:
+        maintenance_status = "🟠 HIGH MAINTENANCE RISK"
+    elif maintenance_count >= total_assets * 0.10:
+        maintenance_status = "🟡 MODERATE MAINTENANCE RISK"
+    else:
+        maintenance_status = "🟢 NORMAL"
+
+    st.info(maintenance_status)
+
+    # Recommendations
+    st.subheader(
+        "💡 AI-Generated Maintenance Recommendations"
+    )
+
+    recommendations = []
+
+    if critical_count > 0:
+        recommendations.append(
+            "Immediately inspect critical equipment."
+        )
+
+    if maintenance_count > 0:
+        recommendations.append(
+            "Schedule preventive maintenance for predicted assets."
+        )
+
+    recommendations.append(
+        "Monitor equipment health regularly."
+    )
+
+    recommendations.append(
+        "Review assets with repeated failures or abnormal readings."
+    )
+
+    for i, recommendation in enumerate(
+        recommendations,
+        start=1
+    ):
+        st.write(
+            f"**{i}.** {recommendation}"
+        )
+
+else:
+    st.warning(
+        "Maintenance results are not available. "
+        "Run the M2 maintenance modules first."
+    )
 # -----------------------------
 # Footer
 # -----------------------------
 st.markdown("---")
 
 st.write(
-    "FacilityOps AI | Energy Agent | Milestone 1"
+    "FacilityOps AI | Energy Agent + Maintenance Agent | Milestone 1 & 2"
 )
